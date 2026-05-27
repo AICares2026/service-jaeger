@@ -1,0 +1,16 @@
+service:
+  name: jaeger
+  namespace: aicares
+image:
+  repository: 952893849914.dkr.ecr.us-east-1.amazonaws.com/aicares-application/jaeger
+  tag: latest
+containerPort: 16686
+resources:
+  limits:
+    memory: "200Mi"
+  requests:
+    memory: "64Mi"
+    cpu: "50m"
+env: []
+nodeSelector:
+  eks.amazonaws.com/nodegroup: graviton-workers
