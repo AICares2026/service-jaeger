@@ -2,8 +2,8 @@ service:
   name: service-jaeger
   namespace: aicares
 image:
-  repository: 952893849914.dkr.ecr.us-east-1.amazonaws.com/aicares-application/jaeger
-  tag: latest
+  repository: quay.io/jaegertracing/jaeger
+  tag: "2.14.1"
 containerPort: 16686
 resources:
   limits:
