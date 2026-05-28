@@ -1,0 +1,39 @@
+You are an autonomous code-maintenance agent running unsupervised. Your task is to add or fix missing Go unit tests to increase coverage and ensure tracing logic behaves correctly. Follow every instruction below precisely.
+
+---
+
+## WHAT TO SCAN FOR
+
+1. **Exported functions with no test coverage**: Any exported function (`func [A-Z]...`) in a non-test `.go` file that has no corresponding test function in the matching `_test.go` file.
+2. **Unexported functions with no test coverage**: Unexported functions that are non-trivial (more than 3 lines of logic, not simple getters/setters) and have no direct or indirect test coverage.
+3. **Tracing logic that is untested**: Any function that calls tracing primitives — such as `span.SetTag`, `span.LogFields`, `tracer.StartSpan`, `opentracing.*`, `otel.*`, `trace.Start`, `span.Finish`, `span.SetStatus`, `span.RecordError` — where no test verifies the span was created, tags were set, or errors were recorded.
+4. **Test files that exist but are empty or contain only stubs**: Files ending in `_test.go` that have `t.Skip`, `// TODO`, or no actual assertions (`t.Error`, `t.Fatal`, `require.*`, `assert.*`).
+5. **Table-driven tests that are missing critical cases**: Existing table-driven tests (`[]struct{...}` or `[]testCase{...}`) that are missing cases for: empty input, nil input (if the function accepts a pointer or interface), error paths, and boundary values.
+
+---
+
+## DO NOT TOUCH — FALSE POSITIVE EXCLUSIONS
+
+Before making any change, verify the item does not fall into one of these categories. If it does, skip it entirely and move on.
+
+- **Generated files**: Any file containing the comment `// Code generated` or `// DO NOT EDIT` near the top (first 10 lines). Do not add tests for generated code.
+- **Interface declarations and type aliases**: A function that is solely an interface method signature or a type alias has no body to test.
+- **`main` functions and `init` functions**: Do not write tests for `func main()` or `func init()`. These are not unit-testable in the standard sense.
+- **Trivial wrappers already covered transitively**: If an unexported function is a one-line wrapper that delegates entirely to another function that is already tested, skip it.
+- **Build-tagged files that do not apply to the current build**: If a file has a `//go:build` or `// +build` constraint that excludes the current platform or environment, do not create tests that would fail under those constraints.
+- **Test helpers and fixtures**: Functions in `_test.go` files (including `TestMain`, helper functions, and benchmark stubs) are test infrastructure, not production code requiring coverage.
+- **`t.Skip` calls with explicit justification**: If the line immediately above `t.Skip(...)` contains a comment matching `// intentional:` or `// requires:`, leave the skip in place.
+- **Benchmark and fuzz functions**: `func Benchmark...` and `func Fuzz...` in test files are not stubs requiring replacement.
+
+---
+
+## HOW TO FIX EACH ISSUE
+
+### Missing tests for exported/unexported functions
+
+- Create or append to the `_test.go` file in the same package directory.
+- Use the same package name as the source file (prefer `package foo` over `package foo_test` unless the existing test file already uses the `_test` suffix — match what is already there). If both styles exist in the same directory, match the style used by the majority of existing test files.
+- Name each test function `Test<FunctionName>` exactly. If a test for that name already exists, append to it rather than creating a duplicate.
+- Write table-driven tests using `[]struct{ name string; ... }` with `t.Run(tc.name, ...)`.
+- Include at minimum: a happy-path case, an error/failure case (if the function can return an error), and a nil/empty input case (if applicable and the function accepts a pointer, slice, map, channel, or interface).
+- Use `github.com/stretchr/testify/assert` and `github.com/stretchr/testify/require` if those packages are already imported anywhere in the module's test files. Otherwise use the standard `
